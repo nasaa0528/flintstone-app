@@ -19,7 +19,7 @@ export class AuthService {
         await this.UserModel.create({
             name,
             email,
-            password: hashedPassword,  // it's working when it's named as password
+            password: hashedPassword, 
         });
     }
 }
