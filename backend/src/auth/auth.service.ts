@@ -14,12 +14,12 @@ export class AuthService {
         if (emailInUse){
             throw new ConflictException("Email already in use")
         }
-        const hashedPassword = bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         await this.UserModel.create({
             name,
             email,
-            hashedPassword,
+            password: hashedPassword,  // it's working when it's named as password
         });
     }
 }
