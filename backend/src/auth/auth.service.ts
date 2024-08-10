@@ -11,13 +11,14 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dtos/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshToken } from './schemas/refresh-token.schema';
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private UserModel: Model<User>,
-    @InjectModel(RefreshToken.name) private RefreshTokenModel: Model<RefreshToken>,
+    @InjectModel(RefreshToken.name)
+    private RefreshTokenModel: Model<RefreshToken>,
     private jwtService: JwtService,
   ) {}
   async signup(signupData: SignupDto) {
@@ -47,40 +48,46 @@ export class AuthService {
       throw new UnauthorizedException('Wrong Credentials');
     }
 
-    const tokens = await this.generateUserTokens(user._id)
+    const tokens = await this.generateUserTokens(user._id);
     return {
-        ...tokens,
-        userId: user._id
-    }
+      ...tokens,
+      userId: user._id,
+    };
   }
 
-  async refreshTokens(refreshToken: string){
+  async refreshTokens(refreshToken: string) {
     const token = await this.RefreshTokenModel.findOneAndDelete({
-        token: refreshToken,
-        expiryDate: {$gte: new Date()}
+      token: refreshToken,
+      expiryDate: { $gte: new Date() },
     });
 
-    if (!token){
-        throw new UnauthorizedException("Refresh Token Is Invalid")
+    if (!token) {
+      throw new UnauthorizedException('Refresh Token Is Invalid');
     }
 
-    return this.generateUserTokens(token.userId)
+    return this.generateUserTokens(token.userId);
   }
 
   async generateUserTokens(userId) {
-    const accessToken = this.jwtService.sign({ userId }, {expiresIn: '1h'});
-    const refreshToken = uuidv4()
-    await this.storeRefreshToken(refreshToken, userId)
+    const accessToken = this.jwtService.sign({ userId }, { expiresIn: '1h' });
+    const refreshToken = uuidv4();
+    await this.storeRefreshToken(refreshToken, userId);
     return {
-        accessToken,
-        refreshToken
-    }
+      accessToken,
+      refreshToken,
+    };
   }
 
-  async storeRefreshToken(token: string, userId){
+  async storeRefreshToken(token: string, userId) {
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 3)
+    expiryDate.setDate(expiryDate.getDate() + 3);
 
-    await this.RefreshTokenModel.create({token, userId, expiryDate})
+    await this.RefreshTokenModel.updateOne(
+      { userId },
+      { $set: { expiryDate, token } },
+      {
+        upsert: true,
+      },
+    );
   }
 }
